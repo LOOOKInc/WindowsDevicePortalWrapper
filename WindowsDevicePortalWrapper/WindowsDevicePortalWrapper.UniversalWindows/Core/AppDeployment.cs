@@ -1,4 +1,4 @@
-﻿//----------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------
 // <copyright file="AppDeployment.cs" company="Microsoft Corporation">
 //     Licensed under the MIT License. See LICENSE.TXT in the project root license information.
 // </copyright>
@@ -269,6 +269,41 @@ namespace Microsoft.Tools.WindowsDevicePortal
                         ApplicationInstallPhase.Idle,
                         string.Format("Failed to install {0}: {1}", appName, installPhaseDescription));
                 }
+            }
+        }
+
+        public async Task UploadFileAsync2(
+            string knownFolderId,
+            string filepath,
+            string subPath = null,
+            string packageFullName = null)
+        {
+            var file = await StorageFile.GetFileFromPathAsync(filepath);
+            IInputStream inputStream = await file.OpenAsync(FileAccessMode.Read);
+
+            HttpMultipartFormDataContent multipartContent = new HttpMultipartFormDataContent();
+
+            multipartContent.Add(new HttpStreamContent(inputStream), "file", Path.GetFileName(filepath));
+
+            Dictionary<string, string> payload = this.BuildCommonFilePayload(knownFolderId, subPath, packageFullName);
+            Uri uri = Utilities.BuildEndpoint(
+                this.deviceConnection.Connection,
+                GetFileApi,
+                Utilities.BuildQueryString(payload));
+
+            HttpBaseProtocolFilter httpFilter = new HttpBaseProtocolFilter();
+            httpFilter.AllowUI = false;
+
+            if (this.deviceConnection.Credentials != null)
+            {
+                httpFilter.ServerCredential = new PasswordCredential();
+                httpFilter.ServerCredential.UserName = this.deviceConnection.Credentials.UserName;
+                httpFilter.ServerCredential.Password = this.deviceConnection.Credentials.Password;
+            }
+
+            using (HttpClient client = new Windows.Web.Http.HttpClient(httpFilter))
+            {
+                HttpResponseMessage response = await client.PostAsync(uri, multipartContent);
             }
         }
     }
