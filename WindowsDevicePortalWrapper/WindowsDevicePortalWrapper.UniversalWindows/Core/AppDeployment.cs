@@ -275,15 +275,16 @@ namespace Microsoft.Tools.WindowsDevicePortal
         public async Task UploadFileAsync2(
             string knownFolderId,
             string filepath,
-            string subPath = null,
-            string packageFullName = null)
+            string outPath,
+            string subPath,
+            string packageFullName)
         {
             var file = await StorageFile.GetFileFromPathAsync(filepath);
             IInputStream inputStream = await file.OpenAsync(FileAccessMode.Read);
 
             HttpMultipartFormDataContent multipartContent = new HttpMultipartFormDataContent();
 
-            multipartContent.Add(new HttpStreamContent(inputStream), "file", Path.GetFileName(filepath));
+            multipartContent.Add(new HttpStreamContent(inputStream), "file", outPath);
 
             Dictionary<string, string> payload = this.BuildCommonFilePayload(knownFolderId, subPath, packageFullName);
             Uri uri = Utilities.BuildEndpoint(
